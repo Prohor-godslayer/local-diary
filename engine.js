@@ -9,7 +9,7 @@ function blankDiary() {
     flashbacks: [],
     codex: [],
     memory: [],
-    inject: { secrets: true, memory: true, flash: false, notes: false },
+    inject: { secrets: true, memory: true, flash: false, notes: false, codex: false },
   };
 }
 
@@ -45,21 +45,31 @@ function parseFacts(text) {
     .slice(0, 8);
 }
 
+function rows(v) { return Array.isArray(v) ? v : []; }
+
 function promptBlock(diary, names) {
   if (!diary) return '';
   const inj = diary.inject || {};
   const chunks = [];
-  if (inj.secrets && diary.secrets.length) {
-    chunks.push('Секреты, которые персонаж знает, но не обязан проговаривать:\n' + diary.secrets.slice(0, 8).map((s) => '• ' + s.text).join('\n'));
+  const secrets = rows(diary.secrets);
+  const memory = rows(diary.memory);
+  const flashbacks = rows(diary.flashbacks);
+  const notes = rows(diary.notes);
+  const codex = rows(diary.codex);
+  if (inj.secrets && secrets.length) {
+    chunks.push('Секреты, которые персонаж знает, но не обязан проговаривать:\n' + secrets.slice(0, 8).map((s) => '• ' + s.text).join('\n'));
   }
-  if (inj.memory && diary.memory.length) {
-    chunks.push('Память сцены:\n' + diary.memory.slice(0, 12).map((s) => '• ' + s.text).join('\n'));
+  if (inj.memory && memory.length) {
+    chunks.push('Память сцены:\n' + memory.slice(0, 12).map((s) => '• ' + s.text).join('\n'));
   }
-  if (inj.flash && diary.flashbacks.length) {
-    chunks.push('Флешбек, если уместно:\n' + diary.flashbacks[0].title + ' — ' + diary.flashbacks[0].text);
+  if (inj.flash && flashbacks.length) {
+    chunks.push('Флешбек, если уместно:\n' + flashbacks[0].title + ' — ' + flashbacks[0].text);
   }
-  if (inj.notes && diary.notes.length) {
-    chunks.push('Заметки игрока:\n' + diary.notes.slice(0, 6).map((s) => '• ' + (s.title ? s.title + ': ' : '') + s.text).join('\n'));
+  if (inj.notes && notes.length) {
+    chunks.push('Заметки игрока:\n' + notes.slice(0, 6).map((s) => '• ' + (s.title ? s.title + ': ' : '') + s.text).join('\n'));
+  }
+  if (inj.codex && codex.length) {
+    chunks.push('Кодекс:\n' + codex.slice(0, 8).map((s) => '• ' + (s.title ? s.title + (s.type ? ' (' + s.type + ')' : '') + ': ' : '') + s.text).join('\n'));
   }
   if (!chunks.length) return '';
   return '[Дневник ' + (names.char || 'персонажа') + '. Это память, не реплика.]\n' + chunks.join('\n\n');

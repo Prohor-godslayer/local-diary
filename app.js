@@ -11,17 +11,21 @@ function bootDiary(host) {
   async function load() {
     book = await host.loadChat('book');
     if (!book || !Array.isArray(book.notes)) book = eng.blankDiary();
-    book.inject = Object.assign({ secrets: true, memory: true, flash: false, notes: false }, book.inject || {});
-    publish();
+    book.inject = Object.assign({ secrets: true, memory: true, flash: false, notes: false, codex: false }, book.inject || {});
+    await publish();
   }
 
-  function publish() {
-    host.names().then((names) => host.setContext(eng.promptBlock(book, names)));
+  let pubGen = 0;
+  async function publish() {
+    const gen = ++pubGen;
+    const names = await host.names();
+    if (gen !== pubGen || !book) return;
+    host.setContext(eng.promptBlock(book, names));
   }
 
   async function save() {
     await host.saveChat('book', book);
-    publish();
+    await publish();
   }
 
   function home() {
@@ -38,7 +42,7 @@ function bootDiary(host) {
         card('flash', 'Флешбеки', n.flashbacks.length, 'кусок прошлого') +
         card('codex', 'Кодекс', n.codex.length, 'люди, места, правила') +
         card('memory', 'Меморибук', n.memory.length, 'собирается моделью клиента') +
-        card('gear', 'Что отдавать в промпт', '', 'секреты, память, флешбек, заметки') +
+        card('gear', 'Что отдавать в промпт', '', 'секреты, память, флешбек, заметки, кодекс') +
       '</div>' +
       '<div class="lx-row"><button type="button" class="lx-btn" data-act="export">Скачать файл</button>' +
       '<label class="lx-btn">Вложить файл<input data-act="import" type="file" accept="application/json" hidden></label></div>';
@@ -89,7 +93,7 @@ function bootDiary(host) {
     ui.setTitle('в промпт клиента', 'Инжект');
     const i = book.inject;
     const row = (key, label) => '<label class="lx-row"><input type="checkbox" data-inj="' + key + '"' + (i[key] ? ' checked' : '') + '> ' + label + '</label>';
-    ui.body.innerHTML = row('secrets', 'Секреты') + row('memory', 'Меморибук') + row('flash', 'Последний флешбек') + row('notes', 'Заметки') +
+    ui.body.innerHTML = row('secrets', 'Секреты') + row('memory', 'Меморибук') + row('flash', 'Последний флешбек') + row('notes', 'Заметки') + row('codex', 'Кодекс') +
       '<button type="button" class="lx-btn primary" data-act="save-gear">Сохранить</button>';
   }
 
@@ -189,6 +193,7 @@ function bootDiary(host) {
   const open = async () => { await load(); view = 'home'; ui.open(); render(); };
   host.addMenu('Локальный дневник', open);
   shell.listen(shell.win(), 'open-diary', 'local-diary-open', open);
+  load();
   return { open, close: () => ui.close() };
 }
 
